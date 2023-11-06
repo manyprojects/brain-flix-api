@@ -24,14 +24,18 @@ const readVideo = () => {
     return JSON.parse(fs.readFileSync(dataFilePath));
 }
 
+const readVideoDetails = () => {
+    return JSON.parse(fs.readFileSync(detailedDataPath));
+}
+
 const fetchvideos = async () => {
     const videDetailArr = [];
     try {
         const response = await axios.get(`${apiUrl}/videos?api_key=${key}`);
 
-        // for (let i = 0; i < response.data.length; i++) {
-        //     response.data[i].image = `/assets/images/image${i}.jpeg`;
-        // }
+        for (let i = 0; i < response.data.length; i++) {
+            response.data[i].image = `http://localhost:8080/assets/images/image${i}.jpeg`;
+        }
         fs.writeFileSync(dataFilePath, JSON.stringify(response.data, null, 2));
 
         const fetchDetailedVideos = async () => {
@@ -42,25 +46,35 @@ const fetchvideos = async () => {
                     videDetailArr.push(detailedResponse.data);
                 }
                 // console.log(videDetailArr);
-                // for (let i = 0; i < videDetailArr.length; i++) {
-                //     videDetailArr[i].image = `/assets/images/image${i}.jpeg`;
-                // }
+                for (let i = 0; i < videDetailArr.length; i++) {
+                    videDetailArr[i].image = `http://localhost:8080/assets/images/image${i}.jpeg`;
+                }
                 fs.writeFileSync(detailedDataPath, JSON.stringify(videDetailArr, null, 2));
 
                 // app.use(express.json());
                 app.get('/', (_req, res) => {
                     const videoData = readVideo();
-                    res.status(200).json(videoData);
+                    if(videoData) {
+                        res.status(200).json(videoData);
+                    } else {
+                        res.status(404).json({ message: 'page not found' })
+                    }
+                    
+                });
+
+                app.get('/video', (_req, res) => {
+                    const videoDetails = readVideoDetails();
+                    res.status(200).json(videoDetails);
                 });
                 
             } catch (err) {
-                console.log('data fetching failed from heroku:', err);
+                res.status(404).json({ message: `${err}` });
             }
         }
         fetchDetailedVideos();
 
     } catch (err) {
-        console.log('data fetching failed from heroku:', err);
+        res.status(404).json({ message: `${err}` });
     }
 }
 fetchvideos();
