@@ -9,6 +9,7 @@ const apiUrl = 'https://project-2-api.herokuapp.com';
 const key = "966263aa-7639-4571-a879-005ec98839e3";
 const dataFilePath = './public/data/video.json';
 const detailedDataPath = './public/data/detailedVideo.json';
+const { v4: uuid } = require('uuid');
 
 
 app.use(cors({
@@ -18,10 +19,6 @@ app.use(cors({
 app.use('/public/images', express.static(__dirname + '/public/images'));
 
 app.use(express.json());
-
-const readVideo = () => {
-    return JSON.parse(fs.readFileSync(dataFilePath));
-}
 
 const readVideoDetails = () => {
     return JSON.parse(fs.readFileSync(detailedDataPath));
@@ -40,8 +37,6 @@ const fetchvideos = async () => {
         for (let i = 0; i < response.data.length; i++) {
             response.data[i].image = `http://localhost:8080/public/images/image${i}.jpeg`;
         }
-        fs.writeFileSync(dataFilePath, JSON.stringify(response.data, null, 2));
-
         const fetchDetailedVideos = async () => {
             try {
                 for (let i = 0; i < response.data.length; i++) {
@@ -52,18 +47,12 @@ const fetchvideos = async () => {
                 for (let i = 0; i < videDetailArr.length; i++) {
                     videDetailArr[i].image = `http://localhost:8080/public/images/image${i}.jpeg`;
                 }
-                fs.writeFileSync(detailedDataPath, JSON.stringify(videDetailArr, null, 2));
+                // only weites data to local json if it's empty
+                if(fs.statSync(detailedDataPath).size === 0){
+                    fs.writeFileSync(detailedDataPath, JSON.stringify(videDetailArr, null, 2));
+                }
 
-                app.get('/', (_req, res) => {
-                    const videoData = readVideo();
-                    if (videoData) {
-                        res.status(200).json(videoData);
-                    } else {
-                        res.status(404).json({ message: 'page not found' });
-                    }      
-                });
-
-                app.get('/video', (_req, res) => {
+                app.get('/videos', (_req, res) => {
                     const videoDetails = readVideoDetails();
                     if (videoDetails) {
                         res.status(200).json(videoDetails);
@@ -72,7 +61,7 @@ const fetchvideos = async () => {
                     } 
                 });
 
-                app.get('/video/:id', (req, res) => {
+                app.get('/videos/:id', (req, res) => {
                     const videoId = req.params.id;
                     const heroVideo = readHeroVideo(videoId);
                     if (heroVideo) {
@@ -82,19 +71,52 @@ const fetchvideos = async () => {
                     } 
                 });
 
+                app.post('/videos', (req, res) => {
+                    const {title, description} = req.body;
+                    const newDetailedVideo = {
+                        id: uuid(),
+                        title: title,
+                        channel: "channel",
+                        image: "http://localhost:8080/public/images/Upload-video-preview.jpg",
+                        description: description,
+                        views: 0,
+                        likes: 0,
+                        duration: "1:00",
+                        video: "https://project-2-api.herokuapp.com/stream",
+                        timestamp: Date.now(),
+                        comments: [
+                            {
+                              id: "ade82e25-6c87-4403-ba35-47bdff93a51c",
+                              name: "anonymous",
+                              comment: "Lorem ipsum dolor sit amet consectetur adipisicing elit. Sint eos amet ipsam, delectus impedit cum repudiandae deserunt corporis, perferendis tenetur error reiciendis temporibus! Natus officia dolorum, ratione inventore consequatur magni!",
+                              likes: 0,
+                              timestamp: Date.now()
+                            }
+                        ]
+                    }
+                    const newVideo = {
+                        id: newDetailedVideo.id,
+                        title: newDetailedVideo.title,
+                        channel: newDetailedVideo.channel,
+                        image: "http://localhost:8080/public/images/Upload-video-preview.jpg"
+                    }
+                    videDetailArr.push(newDetailedVideo);
+                    response.data.push(newVideo);
+                    fs.writeFileSync(detailedDataPath, JSON.stringify(videDetailArr, null, 2));
+                });
+
                 
             } catch (err) {
-                res.status(404).json({ message: `${err}` });
+                throw new Error("Can't fetch data");
             }
         }
         fetchDetailedVideos();
 
     } catch (err) {
-        res.status(404).json({ message: `${err}` });
+        throw new Error("Can't fetch data");
     }
 }
 fetchvideos();
-
 
 // start Express on port 8080
 app.listen(PORT, () => {
