@@ -17,7 +17,6 @@ app.use(cors({
 
 app.use('/assets/images', express.static(__dirname + '/assets/images'));
 
-
 app.use(express.json());
 
 const readVideo = () => {
@@ -26,6 +25,11 @@ const readVideo = () => {
 
 const readVideoDetails = () => {
     return JSON.parse(fs.readFileSync(detailedDataPath));
+}
+
+const readHeroVideo = (videoId) => {
+    const videoDetailsArr = JSON.parse(fs.readFileSync(detailedDataPath));
+    return videoDetailsArr.find(e => e.id === videoId);
 }
 
 const fetchvideos = async () => {
@@ -45,27 +49,39 @@ const fetchvideos = async () => {
                     .get(`${apiUrl}/videos/${response.data[i].id}?api_key=${key}`);
                     videDetailArr.push(detailedResponse.data);
                 }
-                // console.log(videDetailArr);
                 for (let i = 0; i < videDetailArr.length; i++) {
                     videDetailArr[i].image = `http://localhost:8080/assets/images/image${i}.jpeg`;
                 }
                 fs.writeFileSync(detailedDataPath, JSON.stringify(videDetailArr, null, 2));
 
-                // app.use(express.json());
                 app.get('/', (_req, res) => {
                     const videoData = readVideo();
-                    if(videoData) {
+                    if (videoData) {
                         res.status(200).json(videoData);
                     } else {
-                        res.status(404).json({ message: 'page not found' })
-                    }
-                    
+                        res.status(404).json({ message: 'page not found' });
+                    }      
                 });
 
                 app.get('/video', (_req, res) => {
                     const videoDetails = readVideoDetails();
-                    res.status(200).json(videoDetails);
+                    if (videoDetails) {
+                        res.status(200).json(videoDetails);
+                    } else {
+                        res.status(404).json({ message: 'page not found' });
+                    } 
                 });
+
+                app.get('/video/:id', (req, res) => {
+                    const videoId = req.params.id;
+                    const heroVideo = readHeroVideo(videoId);
+                    if (heroVideo) {
+                        res.status(200).json(heroVideo);
+                    } else {
+                        res.status(404).json({ message: 'page not found' });
+                    } 
+                });
+
                 
             } catch (err) {
                 res.status(404).json({ message: `${err}` });
