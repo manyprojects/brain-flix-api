@@ -7,15 +7,15 @@ const axios = require('axios');
 const fs = require('fs');
 const apiUrl = 'https://project-2-api.herokuapp.com';
 const key = "966263aa-7639-4571-a879-005ec98839e3";
-const dataFilePath = './assets/data/video.json';
-const detailedDataPath = './assets/data/detailedVideo.json';
+const dataFilePath = './public/data/video.json';
+const detailedDataPath = './public/data/detailedVideo.json';
 
 
 app.use(cors({
     origin: process.env.CLIENT_URL
 }));
 
-app.use('/assets/images', express.static(__dirname + '/assets/images'));
+app.use('/public/images', express.static(__dirname + '/public/images'));
 
 app.use(express.json());
 
@@ -38,7 +38,7 @@ const fetchvideos = async () => {
         const response = await axios.get(`${apiUrl}/videos?api_key=${key}`);
 
         for (let i = 0; i < response.data.length; i++) {
-            response.data[i].image = `http://localhost:8080/assets/images/image${i}.jpeg`;
+            response.data[i].image = `http://localhost:8080/public/images/image${i}.jpeg`;
         }
         fs.writeFileSync(dataFilePath, JSON.stringify(response.data, null, 2));
 
@@ -50,7 +50,7 @@ const fetchvideos = async () => {
                     videDetailArr.push(detailedResponse.data);
                 }
                 for (let i = 0; i < videDetailArr.length; i++) {
-                    videDetailArr[i].image = `http://localhost:8080/assets/images/image${i}.jpeg`;
+                    videDetailArr[i].image = `http://localhost:8080/public/images/image${i}.jpeg`;
                 }
                 fs.writeFileSync(detailedDataPath, JSON.stringify(videDetailArr, null, 2));
 
